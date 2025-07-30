@@ -16,7 +16,7 @@
 Install-Module TauriCraft -Scope CurrentUser
 ```
 
-## Quick Start
+## Usage
 
 ### Interactive
 
@@ -40,7 +40,7 @@ New-TauriProject -Name "my-app" -Framework "next" -TargetOS @("windows-latest", 
 New-TauriProject -Name "existing-dir" -Framework "sveltekit" -Force
 ```
 
-### List Available Templates
+### List Templates
 
 ```PowerShell
 # Show available frameworks
@@ -50,21 +50,15 @@ Get-TauriTemplate
 Get-TauriTemplate -ShowTargetOS
 ```
 
-## Advanced Usage
-
-### Custom Package Manager
-
 ```PowerShell
 New-TauriProject -Name "my-app" -Framework "vite" -PackageManager "pnpm"
 ```
-
-### Custom Package Name
 
 ```PowerShell
 New-TauriProject -Name "My App" -PackageName "my-custom-app" -Framework "next"
 ```
 
-### All Params
+### Or use all the Params
 
 ```PowerShell
 New-TauriProject `
