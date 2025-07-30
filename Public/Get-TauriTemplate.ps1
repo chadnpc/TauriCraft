@@ -36,6 +36,7 @@ function Get-TauriTemplate {
   param(
     [Parameter()]
     [ValidateSet('vite', 'next', 'sveltekit')]
+    [Alias('f')]
     [string]$Framework,
 
     [Parameter()]
@@ -84,7 +85,7 @@ function Get-TauriTemplate {
 
   Write-Host "Usage Examples:" -ForegroundColor Green
   Write-Host "  New-TauriProject" -ForegroundColor Cyan
-  Write-Host "  New-TauriProject -ProjectName 'my-app' -Framework 'vite'" -ForegroundColor Cyan
+  Write-Host "  New-TauriProject -Name 'my-app' -Framework 'vite'" -ForegroundColor Cyan
   Write-Host "  New-TauriProject -Interactive" -ForegroundColor Cyan
   Write-Host ""
 }

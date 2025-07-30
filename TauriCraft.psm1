@@ -59,6 +59,8 @@ class ProjectConfig {
 
 # Main class
 class TauriCraft : PsModuleBase {
+  static [object] $Logger = $null
+
   static [Framework[]] $Frameworks = @(
     [Framework]::new("vite", "⚡Vite + React", "Blue"),
     [Framework]::new("next", "▲ Next.js", "Blue"),
@@ -77,13 +79,25 @@ class TauriCraft : PsModuleBase {
 
   static [string] $DefaultTargetDir = "tauri-ui"
 
+  # Initialize logger
+  static [void] InitializeLogger() {
+    if ($null -eq [TauriCraft]::Logger) {
+      [TauriCraft]::Logger = New-Logger -Level 1
+      [TauriCraft]::Logger.LogInfoLine("TauriCraft logger initialized")
+    }
+  }
+
   # Static method to get available templates
   static [string[]] GetTemplates() {
+    [TauriCraft]::InitializeLogger()
+    [TauriCraft]::Logger.LogDebugLine("Getting available templates")
     return [TauriCraft]::Frameworks | ForEach-Object { $_.Name }
   }
 
   # Static method to get available OS targets
   static [string[]] GetAllOSTargets() {
+    [TauriCraft]::InitializeLogger()
+    [TauriCraft]::Logger.LogDebugLine("Getting available OS targets")
     return [TauriCraft]::TargetOperatingSystems | ForEach-Object { $_.Value }
   }
 
@@ -94,48 +108,73 @@ class TauriCraft : PsModuleBase {
 
   # Main scaffolding method with module root
   static [void] CreateProject([ProjectConfig] $config, [string] $moduleRoot) {
-    [TauriCraft]::ValidateConfig($config)
-    [TauriCraft]::SetupProjectDirectory($config)
-    [TauriCraft]::CopyTemplateFiles($config, $moduleRoot)
-    [TauriCraft]::ProcessConfigurationFiles($config, $moduleRoot)
-    [TauriCraft]::ShowCompletionInstructions($config)
+    [TauriCraft]::InitializeLogger()
+    [TauriCraft]::Logger.LogInfoLine("Starting TauriCraft project creation")
+    [TauriCraft]::Logger.LogInfoLine("Project: $($config.ProjectName), Framework: $($config.Framework.Name)")
+
+    try {
+      [TauriCraft]::ValidateConfig($config)
+      [TauriCraft]::SetupProjectDirectory($config)
+      [TauriCraft]::CopyTemplateFiles($config, $moduleRoot)
+      [TauriCraft]::ProcessConfigurationFiles($config, $moduleRoot)
+      [TauriCraft]::ShowCompletionInstructions($config)
+
+      [TauriCraft]::Logger.LogInfoLine("Project creation completed successfully")
+    } catch {
+      [TauriCraft]::Logger | Write-LogEntry -Level Error -Message "Project creation failed" -Exception $_.Exception
+      throw
+    }
   }
 
   # Validation method
   static [void] ValidateConfig([ProjectConfig] $config) {
+    [TauriCraft]::Logger.LogDebugLine("Validating project configuration")
+
     if ([string]::IsNullOrWhiteSpace($config.ProjectName)) {
+      [TauriCraft]::Logger.LogErrorLine("Project name validation failed: empty or null")
       throw "Project name cannot be empty"
     }
 
     if ([string]::IsNullOrWhiteSpace($config.PackageName)) {
+      [TauriCraft]::Logger.LogErrorLine("Package name validation failed: empty or null")
       throw "Package name cannot be empty"
     }
 
     if ($null -eq $config.Framework) {
+      [TauriCraft]::Logger.LogErrorLine("Framework validation failed: null framework")
       throw "Framework must be specified"
     }
 
     $validTemplates = [TauriCraft]::GetTemplates()
     if ($config.Framework.Name -notin $validTemplates) {
+      [TauriCraft]::Logger.LogErrorLine("Framework validation failed: $($config.Framework.Name) not in valid templates")
       throw "Invalid framework: $($config.Framework.Name). Valid options: $($validTemplates -join ', ')"
     }
+
+    [TauriCraft]::Logger.LogInfoLine("Configuration validation passed")
   }
 
   # Directory setup method
   static [void] SetupProjectDirectory([ProjectConfig] $config) {
     $projectRoot = Join-Path (Get-Location) $config.TargetDirectory
+    [TauriCraft]::Logger.LogInfoLine("Setting up project directory: $projectRoot")
 
     if ([IO.Directory]::Exists($projectRoot)) {
+      [TauriCraft]::Logger.LogDebugLine("Target directory already exists")
       if ($config.Overwrite) {
+        [TauriCraft]::Logger.LogWarnLine("Overwriting existing directory contents")
         [TauriCraft]::EmptyDirectory($projectRoot)
       } elseif (![TauriCraft]::IsDirectoryEmpty($projectRoot)) {
+        [TauriCraft]::Logger.LogErrorLine("Target directory is not empty and overwrite not specified")
         throw "Target directory '$projectRoot' is not empty. Use -Force to overwrite."
       }
     } else {
+      [TauriCraft]::Logger.LogDebugLine("Creating new project directory")
       New-Item -Path $projectRoot -ItemType Directory -Force | Out-Null
     }
 
     $config.TargetDirectory = $projectRoot
+    [TauriCraft]::Logger.LogInfoLine("Project directory setup completed")
   }
 
   # Template copying method
@@ -143,16 +182,24 @@ class TauriCraft : PsModuleBase {
     $templateDir = Join-Path $moduleRoot "Private\templates\$($config.Framework.Name)"
     $sharedDir = Join-Path $moduleRoot "Private\templates\.shared"
 
+    [TauriCraft]::Logger.LogInfoLine("Starting template file copying")
+    [TauriCraft]::Logger.LogDebugLine("Template directory: $templateDir")
+    [TauriCraft]::Logger.LogDebugLine("Shared directory: $sharedDir")
+
     if (![IO.Directory]::Exists($templateDir)) {
+      [TauriCraft]::Logger.LogErrorLine("Template directory not found: $templateDir")
       throw "Template directory not found: $templateDir"
     }
 
     Write-Host "Scaffolding project in $($config.TargetDirectory)" -ForegroundColor Gray
+    [TauriCraft]::Logger.LogInfoLine("Scaffolding project in $($config.TargetDirectory)")
 
     # Copy template files (excluding configuration files that will be processed separately)
     $templateFiles = Get-ChildItem $templateDir -Recurse -File | Where-Object {
       $_.Name -notin @("package.json", "tauri.conf.json", "Cargo.toml")
     }
+
+    [TauriCraft]::Logger.LogInfoLine("Copying $($templateFiles.Count) template files")
 
     foreach ($file in $templateFiles) {
       $relativePath = $file.FullName.Substring($templateDir.Length + 1)
@@ -169,12 +216,16 @@ class TauriCraft : PsModuleBase {
         New-Item -Path $targetDir -ItemType Directory -Force | Out-Null
       }
 
+      [TauriCraft]::Logger.LogDebugLine("Copying: $relativePath -> $targetPath")
       Copy-Item $file.FullName $targetPath -Force
     }
 
     # Copy shared files (except for SvelteKit)
     if ($config.Framework.Name -ne "sveltekit" -and [IO.Directory]::Exists($sharedDir)) {
+      [TauriCraft]::Logger.LogInfoLine("Copying shared files from $sharedDir")
       $sharedFiles = Get-ChildItem $sharedDir -Recurse
+      [TauriCraft]::Logger.LogDebugLine("Found $($sharedFiles.Count) shared files/directories")
+
       foreach ($file in $sharedFiles) {
         $relativePath = $file.FullName.Substring($sharedDir.Length + 1)
         $targetPath = Join-Path $config.TargetDirectory $relativePath
@@ -186,18 +237,25 @@ class TauriCraft : PsModuleBase {
 
         if ($file.PSIsContainer) {
           if (![IO.Directory]::Exists($targetPath)) {
+            [TauriCraft]::Logger.LogDebugLine("Creating directory: $relativePath")
             New-Item -Path $targetPath -ItemType Directory -Force | Out-Null
           }
         } else {
+          [TauriCraft]::Logger.LogDebugLine("Copying shared file: $relativePath")
           Copy-Item $file.FullName $targetPath -Force
         }
       }
+    } else {
+      [TauriCraft]::Logger.LogDebugLine("Skipping shared files for SvelteKit or shared directory not found")
     }
+
+    [TauriCraft]::Logger.LogInfoLine("Template file copying completed")
   }
 
   # Configuration file processing method
   static [void] ProcessConfigurationFiles([ProjectConfig] $config, [string] $moduleRoot) {
     $templateDir = Join-Path $moduleRoot "Private\templates\$($config.Framework.Name)"
+    [TauriCraft]::Logger.LogInfoLine("Processing configuration files")
 
     # Process package.json
     [TauriCraft]::ProcessPackageJson($config, $templateDir)
@@ -210,33 +268,44 @@ class TauriCraft : PsModuleBase {
 
     # Process GitHub Actions release.yml
     [TauriCraft]::ProcessReleaseWorkflow($config, $moduleRoot)
+
+    [TauriCraft]::Logger.LogInfoLine("Configuration file processing completed")
   }
 
   # Package.json processing
   static [void] ProcessPackageJson([ProjectConfig] $config, [string] $templateDir) {
     $packageJsonPath = [IO.Path]::Combine($templateDir, "package.json")
+    [TauriCraft]::Logger.LogDebugLine("Processing package.json from: $packageJsonPath")
+
     if ([IO.Path]::Exists($packageJsonPath)) {
       $packageJson = Get-Content $packageJsonPath -Raw | ConvertFrom-Json
       $packageJson.name = $config.PackageName
 
       $targetPath = Join-Path $config.TargetDirectory "package.json"
       $packageJson | ConvertTo-Json -Depth 10 | Set-Content $targetPath -Encoding UTF8
+      [TauriCraft]::Logger.LogInfoLine("Updated package.json with name: $($config.PackageName)")
+    } else {
+      [TauriCraft]::Logger.LogWarnLine("package.json not found in template directory")
     }
   }
 
   # Tauri configuration processing
   static [void] ProcessTauriConfig([ProjectConfig] $config, [string] $templateDir) {
     $tauriConfigPath = Join-Path $templateDir "src-tauri\tauri.conf.json"
+    [TauriCraft]::Logger.LogDebugLine("Processing tauri.conf.json from: $tauriConfigPath")
+
     if ([IO.Path]::Exists($tauriConfigPath)) {
       $tauriConfig = Get-Content $tauriConfigPath -Raw | ConvertFrom-Json
 
       # Update the product name and window title based on the actual structure
       if ($tauriConfig.productName) {
         $tauriConfig.productName = $config.PackageName
+        [TauriCraft]::Logger.LogDebugLine("Updated productName to: $($config.PackageName)")
       }
 
       if ($tauriConfig.app -and $tauriConfig.app.windows -and $tauriConfig.app.windows.Count -gt 0) {
         $tauriConfig.app.windows[0].title = $config.PackageName
+        [TauriCraft]::Logger.LogDebugLine("Updated window title to: $($config.PackageName)")
       }
 
       $targetDir = Join-Path $config.TargetDirectory "src-tauri"
@@ -246,6 +315,9 @@ class TauriCraft : PsModuleBase {
 
       $targetPath = Join-Path $targetDir "tauri.conf.json"
       $tauriConfig | ConvertTo-Json -Depth 10 | Set-Content $targetPath -Encoding UTF8
+      [TauriCraft]::Logger.LogInfoLine("Updated tauri.conf.json configuration")
+    } else {
+      [TauriCraft]::Logger.LogWarnLine("tauri.conf.json not found in template directory")
     }
   }
 
@@ -374,6 +446,15 @@ class TauriCraft : PsModuleBase {
       version = if ($pkgSpecArr.Length -gt 1) { $pkgSpecArr[1] } else { "" }
     }
   }
+
+  # Dispose logger resources
+  static [void] DisposeLogger() {
+    if ($null -ne [TauriCraft]::Logger) {
+      [TauriCraft]::Logger.LogInfoLine("Disposing TauriCraft logger")
+      [TauriCraft]::Logger.Dispose()
+      [TauriCraft]::Logger = $null
+    }
+  }
 }
 #endregion Classes
 
@@ -402,6 +483,10 @@ foreach ($Type in $typestoExport) {
 }
 # Remove type accelerators when the module is removed.
 $MyInvocation.MyCommand.ScriptBlock.Module.OnRemove = {
+  # Dispose logger resources
+  [TauriCraft]::DisposeLogger()
+
+  # Remove type accelerators
   foreach ($Type in $typestoExport) {
     $TypeAcceleratorsClass::Remove($Type.FullName)
   }

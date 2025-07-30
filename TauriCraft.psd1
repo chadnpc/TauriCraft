@@ -51,7 +51,7 @@
 
   # Modules that must be imported into the global environment prior to importing this module
   RequiredModules       = @(
-    'cliHelper.env',
+    'cliHelper.logger',
     'PsModuleBase'
   )
 
@@ -112,8 +112,10 @@
       ReleaseNotes = '# Release Notes
 
 - Version_0.1.0
-- Functions ...
-- Optimizations
+- ✅ All three frameworks (Vite + React, Next.js, SvelteKit)
+- Added Interactive and non-interactive modes
+- Added optional Logging functionality 
+- Configuration file processing (package.json, tauri.conf.json, Cargo.toml)
 '
 
       # Prerelease string of this module

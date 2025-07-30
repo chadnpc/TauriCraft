@@ -37,12 +37,12 @@ function New-TauriProject {
     Creates a new Tauri project with interactive prompts for all options.
 
   .EXAMPLE
-    New-TauriProject -ProjectName "my-tauri-app" -Framework "vite"
+    New-TauriProject -Name "my-tauri-app" -Framework "vite"
 
     Creates a new Tauri project named "my-tauri-app" using the Vite + React template.
 
   .EXAMPLE
-    New-TauriProject -ProjectName "my-app" -Framework "next" -TargetOS @("windows-latest", "ubuntu-latest") -Force
+    New-TauriProject -Name "my-app" -Framework "next" -TargetOS @("windows-latest", "ubuntu-latest") -Force
 
     Creates a new Tauri project with Next.js, targeting only Windows and Linux, overwriting any existing directory.
 
@@ -53,17 +53,21 @@ function New-TauriProject {
   [CmdletBinding(DefaultParameterSetName = 'Interactive', SupportsShouldProcess = $true)]
   param(
     [Parameter(Position = 0)]
+    [Alias('Name', 'n')]
     [string]$ProjectName,
 
     [Parameter()]
     [ValidateSet('vite', 'next', 'sveltekit')]
+    [Alias('f')]
     [string]$Framework,
 
     [Parameter()]
+    [Alias('pn')]
     [string]$PackageName,
 
     [Parameter()]
     [ValidateSet('windows-latest', 'macos-latest', 'ubuntu-latest')]
+    [alias('os', 'target')]
     [string[]]$TargetOS = @('windows-latest', 'macos-latest', 'ubuntu-latest'),
 
     [Parameter()]
@@ -74,6 +78,7 @@ function New-TauriProject {
 
     [Parameter()]
     [ValidateSet('npm', 'yarn', 'pnpm')]
+    [Alias('pm')]
     [string]$PackageManager
   )
 
