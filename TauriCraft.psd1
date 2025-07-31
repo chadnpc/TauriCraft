@@ -114,7 +114,7 @@
 - Version_0.1.0
 - ✅ All three frameworks (Vite + React, Next.js, SvelteKit)
 - Added Interactive and non-interactive modes
-- Added optional Logging functionality 
+- Added optional Logging functionality
 - Configuration file processing (package.json, tauri.conf.json, Cargo.toml)
 '
 
