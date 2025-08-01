@@ -11,7 +11,7 @@
   RootModule            = 'TauriCraft.psm1'
 
   # Version number of this module.
-  ModuleVersion         = '0.1.0'
+  ModuleVersion         = '0.1.1'
 
   # Supported PSEditions
   # CompatiblePSEditions = @()
@@ -111,7 +111,7 @@
       # ReleaseNotes of this module
       ReleaseNotes = '# Release Notes
 
-- Version_0.1.0
+- Version_0.1.1
 - ✅ All three frameworks (Vite + React, Next.js, SvelteKit)
 - Added Interactive and non-interactive modes
 - Added optional Logging functionality

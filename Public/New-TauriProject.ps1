@@ -1,19 +1,14 @@
 function New-TauriProject {
   <#
   .SYNOPSIS
-    Creates a new Tauri desktop application project using PowerShell.
+    Creates a new Tauri Next.js desktop application project using PowerShell.
 
   .DESCRIPTION
-    New-TauriProject is a PowerShell equivalent of the tauri-ui CLI tool. It scaffolds a new Tauri v2 desktop application
-    with your choice of frontend framework (Vite + React, Next.js, or SvelteKit) and configures GitHub Actions for
-    cross-platform releases.
+    New-TauriProject scaffolds a new Tauri v2 desktop application with Next.js frontend and configures GitHub Actions for
+    cross-platform releases. This is a simplified version focused on Next.js only.
 
   .PARAMETER ProjectName
     The name of the project directory to create. If not specified, you'll be prompted to enter one.
-
-  .PARAMETER Framework
-    The frontend framework to use. Valid options are: 'vite', 'next', 'sveltekit'.
-    If not specified, you'll be prompted to choose from a list.
 
   .PARAMETER PackageName
     The package name for package.json. If not specified, it will be derived from the project name.
@@ -34,20 +29,20 @@ function New-TauriProject {
   .EXAMPLE
     New-TauriProject
 
-    Creates a new Tauri project with interactive prompts for all options.
+    Creates a new Tauri Next.js project with interactive prompts for all options.
 
   .EXAMPLE
-    New-TauriProject -Name "my-tauri-app" -Framework "vite"
+    New-TauriProject -Name "my-tauri-app"
 
-    Creates a new Tauri project named "my-tauri-app" using the Vite + React template.
+    Creates a new Tauri Next.js project named "my-tauri-app".
 
   .EXAMPLE
-    New-TauriProject -Name "my-app" -Framework "next" -TargetOS @("windows-latest", "ubuntu-latest") -Force
+    New-TauriProject -Name "my-app" -TargetOS @("windows-latest", "ubuntu-latest") -Force
 
-    Creates a new Tauri project with Next.js, targeting only Windows and Linux, overwriting any existing directory.
+    Creates a new Tauri Next.js project targeting only Windows and Linux, overwriting any existing directory.
 
   .NOTES
-    This function requires the templates to be available in the module's Private/templates directory.
+    This function uses the Next.js template from the module's Private/nextjs-template directory.
     The function will copy template files, process configuration files, and set up the project structure.
   #>
   [CmdletBinding(DefaultParameterSetName = 'Interactive', SupportsShouldProcess = $true)]
@@ -55,11 +50,6 @@ function New-TauriProject {
     [Parameter(Position = 0)]
     [Alias('Name', 'n')]
     [string]$ProjectName,
-
-    [Parameter()]
-    [ValidateSet('vite', 'next', 'sveltekit')]
-    [Alias('f')]
-    [string]$Framework,
 
     [Parameter()]
     [Alias('pn')]
@@ -90,8 +80,8 @@ function New-TauriProject {
     }
 
     # Interactive mode or missing required parameters
-    if ($Interactive -or [string]::IsNullOrWhiteSpace($ProjectName) -or [string]::IsNullOrWhiteSpace($Framework)) {
-      $config = Get-InteractiveProjectConfig -ProjectName $ProjectName -Framework $Framework -PackageName $PackageName -TargetOS $TargetOS -Force:$Force -PackageManager $PackageManager
+    if ($Interactive -or [string]::IsNullOrWhiteSpace($ProjectName)) {
+      $config = Get-InteractiveProjectConfig -ProjectName $ProjectName -PackageName $PackageName -TargetOS $TargetOS -Force:$Force -PackageManager $PackageManager
     } else {
       # Non-interactive mode with all parameters provided
       $config = [ProjectConfig]::new()
@@ -101,12 +91,7 @@ function New-TauriProject {
         $config.TargetDirectory = [TauriCraft]::DefaultTargetDir
       }
 
-      # Find the framework object
-      $frameworkObj = [TauriCraft]::Frameworks | Where-Object { $_.Name -eq $Framework }
-      if ($null -eq $frameworkObj) {
-        throw [System.InvalidOperationException]::new("Invalid framework: $Framework. Valid options: $([TauriCraft]::GetTemplates() -join ', ')")
-      }
-      $config.Framework = $frameworkObj
+      # No framework selection needed - using Next.js only
 
       # Set package name
       if ([string]::IsNullOrWhiteSpace($PackageName)) {
@@ -131,7 +116,91 @@ function New-TauriProject {
       [TauriCraft]::CreateProject($config, $moduleRoot)
     }
   } catch {
-    Write-Error "Failed to create Tauri project: $($_.Exception.Message)"
+    Write-Error "Failed to create Tauri Next.js project: $($_.Exception.Message)"
     return
   }
+}
+
+function Get-InteractiveProjectConfig {
+  param(
+    [string]$ProjectName,
+    [string]$PackageName,
+    [string[]]$TargetOS,
+    [bool]$Force,
+    [string]$PackageManager
+  )
+
+  $config = [ProjectConfig]::new()
+  $config.PackageManager = $PackageManager
+
+  # Project name prompt
+  if ([string]::IsNullOrWhiteSpace($ProjectName)) {
+    do {
+      $ProjectName = Read-Host "Project name [$([TauriCraft]::DefaultTargetDir)]"
+      if ([string]::IsNullOrWhiteSpace($ProjectName)) {
+        $ProjectName = [TauriCraft]::DefaultTargetDir
+      }
+      $ProjectName = [TauriCraft]::FormatTargetDirectory($ProjectName)
+    } while ([string]::IsNullOrWhiteSpace($ProjectName))
+  }
+
+  $config.ProjectName = $ProjectName
+  $config.TargetDirectory = $ProjectName
+
+  # Check if directory exists and prompt for overwrite
+  $projectPath = [IO.Path]::Combine((Get-Location) , $config.TargetDirectory)
+  if ((Test-Path $projectPath) -and -not [TauriCraft]::IsDirectoryEmpty($projectPath)) {
+    if (-not $Force) {
+      $overwrite = Read-Host "Target directory '$($config.TargetDirectory)' is not empty. Remove existing files and continue? (y/N)"
+      $config.Overwrite = $overwrite -match '^[Yy]'
+      if (-not $config.Overwrite) {
+        throw "Operation cancelled"
+      }
+    } else {
+      $config.Overwrite = $true
+    }
+  }
+
+  # Package name
+  $defaultPackageName = [TauriCraft]::ToValidPackageName($config.ProjectName)
+  if ([string]::IsNullOrWhiteSpace($PackageName)) {
+    if (-not [TauriCraft]::IsValidPackageName($defaultPackageName)) {
+      do {
+        $PackageName = Read-Host "Package name [$defaultPackageName]"
+        if ([string]::IsNullOrWhiteSpace($PackageName)) {
+          $PackageName = $defaultPackageName
+        }
+      } while (-not [TauriCraft]::IsValidPackageName($PackageName))
+    } else {
+      $PackageName = $defaultPackageName
+    }
+  }
+  $config.PackageName = $PackageName
+
+  # Target OS selection
+  Write-Host "`nTarget operating systems for GitHub Actions:" -ForegroundColor Yellow
+  Write-Host "(Use space to toggle, Enter to confirm)" -ForegroundColor Gray
+
+  $osConfigs = [TauriCraft]::TargetOperatingSystems
+  $selectedOS = @()
+
+  foreach ($osConfig in $osConfigs) {
+    $default = if ($TargetOS -contains $osConfig.Value) { "Y" } else { "n" }
+    $choice = Read-Host "$($osConfig.Title) [$default]"
+    if ([string]::IsNullOrWhiteSpace($choice)) {
+      $choice = $default
+    }
+    if ($choice -match '^[Yy]') {
+      $selectedOS += $osConfig.Value
+    }
+  }
+
+  if ($selectedOS.Count -eq 0) {
+    Write-Warning "No target OS selected. Using all platforms."
+    $selectedOS = [TauriCraft]::GetAllOSTargets()
+  }
+
+  $config.ReleaseOS = $selectedOS
+
+  return $config
 }
