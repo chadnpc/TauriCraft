@@ -29,7 +29,7 @@
   Copyright             = 'Copyright © 2025 alain. All rights reserved.'
 
   # Description of the functionality provided by this module
-  Description           = 'A module to easily scaffold new tauri app project.'
+  Description           = 'A module to automate building🦀tauri-v2 desktop apps, fast.'
 
   # Minimum version of the PowerShell engine required by this module
   PowerShellVersion     = '7.5'
@@ -103,19 +103,17 @@
       LicenseUri   = 'https://alain.mit-license.org/'
 
       # A URL to the main website for this project.
-      ProjectUri   = 'https://github.com/alain/TauriCraft'
+      ProjectUri   = 'https://github.com/chadnpc/TauriCraft'
 
       # A URL to an icon representing this module.
-      IconUri      = 'https://github.com/user-attachments/assets/1220c30e-a309-43c3-9a80-1948dae30e09'
+      IconUri      = 'https://github.com/user-attachments/assets/c7897c06-94bb-468f-8247-254fb4610d76'
 
       # ReleaseNotes of this module
       ReleaseNotes = '# Release Notes
 
 - Version_0.1.1
-- ✅ All three frameworks (Vite + React, Next.js, SvelteKit)
-- Added Interactive and non-interactive modes
-- Added optional Logging functionality
-- Configuration file processing (package.json, tauri.conf.json, Cargo.toml)
+
+- ✅ Updated Next.js 15 template
 '
 
       # Prerelease string of this module
