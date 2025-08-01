@@ -21,7 +21,7 @@ ready to go in one command.
 New-TauriProject -Name "my-app" -PackageManager "pnpm" -TargetOS @("windows-latest")
 ```
 
-## 📚 Documentation
+## 📚 Docs
 
 For detailed documentation and advanced usage, see [docs/Readme.md](docs/Readme.md).
 
